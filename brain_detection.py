@@ -97,10 +97,47 @@ class MyNet(nn.Module):
 
 from sklearn.model_selection import KFold, train_test_split, StratifiedKFold
 import albumentations as A
-skf = KFold(n_splits=10, random_state=233, shuffle=True)
 
-for fold_idx, (train_idx, val_idx) in enumerate(skf.split(train_path)):
-    print(train_idx.shape)
+#kfold
+# skf = KFold(n_splits=10, random_state=233, shuffle=True)
+#
+# for fold_idx, (train_idx, val_idx) in enumerate(skf.split(train_path)):
+#     print(train_idx.shape)
+#     model = MyNet()
+#     model = model.to('cuda')
+#
+#     #混合精度
+#     scaler = GradScaler()
+#
+#     criterion = nn.CrossEntropyLoss().cuda()
+#     optimizer = torch.optim.AdamW(model.parameters(), 0.0001)
+#
+#     train_loader = torch.utils.data.DataLoader(
+#         MyDataset(np.array(train_path)[train_idx],
+#                   A.Compose([
+#                     A.RandomRotate90(),
+#                     A.RandomCrop(120, 120),
+#                     A.AdvancedBlur(blur_limit=(3, 7), p=0.5),
+#                     A.ShiftScaleRotate(shift_limit=0.05, scale_limit=0.05, rotate_limit=15, p=0.5),
+#                     A.HorizontalFlip(p=0.5),
+#                     A.RandomContrast(p=0.5),
+#                     A.RandomBrightnessContrast(p=0.5),
+#                   ])
+#         ), batch_size=2, shuffle=True, num_workers=0, pin_memory=False
+#     )
+#
+#     val_loader = torch.utils.data.DataLoader(
+#         MyDataset(np.array(train_path)[val_idx],
+#                   A.Compose([
+#                     A.RandomCrop(120, 120),
+#                   ])
+#         ), batch_size=2, shuffle=True, num_workers=0, pin_memory=False
+#     )
+
+
+#train_test_split
+train_path, val_path = train_test_split(train_path, test_size=0.1, random_state=42)
+for fold_idx in range(10):
     model = MyNet()
     model = model.to('cuda')
 
@@ -111,27 +148,26 @@ for fold_idx, (train_idx, val_idx) in enumerate(skf.split(train_path)):
     optimizer = torch.optim.AdamW(model.parameters(), 0.0001)
 
     train_loader = torch.utils.data.DataLoader(
-        MyDataset(np.array(train_path)[train_idx],
+        MyDataset(train_path,
                   A.Compose([
-                    A.RandomRotate90(),
-                    A.RandomCrop(120, 120),
-                    A.AdvancedBlur(blur_limit=(3, 7), p=0.5),
-                    A.ShiftScaleRotate(shift_limit=0.05, scale_limit=0.05, rotate_limit=15, p=0.5),
-                    A.HorizontalFlip(p=0.5),
-                    A.RandomContrast(p=0.5),
-                    A.RandomBrightnessContrast(p=0.5),
+                      A.RandomRotate90(),
+                      A.RandomCrop(120, 120),
+                      A.AdvancedBlur(blur_limit=(3, 7), p=0.5),
+                      A.ShiftScaleRotate(shift_limit=0.05, scale_limit=0.05, rotate_limit=15, p=0.5),
+                      A.HorizontalFlip(p=0.5),
+                      A.RandomContrast(p=0.5),
+                      A.RandomBrightnessContrast(p=0.5),
                   ])
         ), batch_size=2, shuffle=True, num_workers=0, pin_memory=False
     )
 
     val_loader = torch.utils.data.DataLoader(
-        MyDataset(np.array(train_path)[val_idx],
+        MyDataset(val_path,
                   A.Compose([
                     A.RandomCrop(120, 120),
                   ])
         ), batch_size=2, shuffle=True, num_workers=0, pin_memory=False
     )
-
 
     """step3:模型训练与验证"""
 
@@ -179,7 +215,7 @@ for fold_idx, (train_idx, val_idx) in enumerate(skf.split(train_path)):
 
 
     training_start_time = time.time()
-    result_folder = 'results'
+    result_folder = 'train_test_split'
     os.makedirs(result_folder, exist_ok=True)
     tensorboard_logs_folder = os.path.join(result_folder, 'tensorboard_logs')
     os.makedirs(tensorboard_logs_folder, exist_ok=True)
