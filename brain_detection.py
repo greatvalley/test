@@ -269,3 +269,5 @@ submit = pd.DataFrame(
 submit['label'] = submit['label'].map({1: 'NC', 0: 'MCI'})
 submit = submit.sort_values(by='uuid')
 submit.to_csv('submit2.csv', index=None)
+
+print("a")
