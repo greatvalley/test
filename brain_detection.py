@@ -29,7 +29,7 @@ torch.backends.cudnn.benchmark = True
 #     torch.backends.cudnn.benchmark = False
 #     torch.backends.cudnn.deterministic = True
 
-
+import os
 import nibabel as nib
 import numpy as np
 from torch.utils.data import Dataset
@@ -37,6 +37,8 @@ from torch.utils.data import Dataset
 """glob.glob()函数，用于查找文件目录和文件，并将搜索到的结果返回到一个列表中"""
 train_path = glob.glob('./脑PET图像分析和疾病预测挑战赛公开数据/Train/*/*')
 test_path = glob.glob('./脑PET图像分析和疾病预测挑战赛公开数据/Test/*')
+train_labels = [os.path.basename(os.path.dirname(path)) for path in train_path]
+
 
 """np.random.shuffle()函数，用于将一个数组或列表中的元素随机打乱"""
 np.random.shuffle(train_path)
@@ -98,7 +100,7 @@ class MyNet(nn.Module):
 from sklearn.model_selection import KFold, train_test_split, StratifiedKFold
 import albumentations as A
 
-#kfold
+##kfold
 # skf = KFold(n_splits=10, random_state=233, shuffle=True)
 #
 # for fold_idx, (train_idx, val_idx) in enumerate(skf.split(train_path)):
@@ -135,9 +137,44 @@ import albumentations as A
 #     )
 
 
-#train_test_split
-train_path, val_path = train_test_split(train_path, test_size=0.1, random_state=42)
-for fold_idx in range(10):
+# #stratifiedKFold
+# train_path, val_path = stratifiedKFold(train_path, test_size=0.1, random_state=42)
+# for fold_idx in range(10):
+#     model = MyNet()
+#     model = model.to('cuda')
+#
+#     #混合精度
+#     scaler = GradScaler()
+#
+#     criterion = nn.CrossEntropyLoss().cuda()
+#     optimizer = torch.optim.AdamW(model.parameters(), 0.0001)
+#
+#     train_loader = torch.utils.data.DataLoader(
+#         MyDataset(train_path,
+#                   A.Compose([
+#                       A.RandomRotate90(),
+#                       A.RandomCrop(120, 120),
+#                       A.AdvancedBlur(blur_limit=(3, 7), p=0.5),
+#                       A.ShiftScaleRotate(shift_limit=0.05, scale_limit=0.05, rotate_limit=15, p=0.5),
+#                       A.HorizontalFlip(p=0.5),
+#                       A.RandomContrast(p=0.5),
+#                       A.RandomBrightnessContrast(p=0.5),
+#                   ])
+#         ), batch_size=2, shuffle=True, num_workers=0, pin_memory=False
+#     )
+#
+#     val_loader = torch.utils.data.DataLoader(
+#         MyDataset(val_path,
+#                   A.Compose([
+#                     A.RandomCrop(120, 120),
+#                   ])
+#         ), batch_size=2, shuffle=True, num_workers=0, pin_memory=False
+#     )
+
+#stratified K-Fold
+skf = StratifiedKFold(n_splits=10, random_state=233, shuffle=True)
+
+for fold_idx, (train_idx, val_idx) in enumerate(skf.split(train_path, train_labels)):
     model = MyNet()
     model = model.to('cuda')
 
@@ -148,21 +185,21 @@ for fold_idx in range(10):
     optimizer = torch.optim.AdamW(model.parameters(), 0.0001)
 
     train_loader = torch.utils.data.DataLoader(
-        MyDataset(train_path,
+        MyDataset(np.array(train_path)[train_idx],
                   A.Compose([
-                      A.RandomRotate90(),
-                      A.RandomCrop(120, 120),
-                      A.AdvancedBlur(blur_limit=(3, 7), p=0.5),
-                      A.ShiftScaleRotate(shift_limit=0.05, scale_limit=0.05, rotate_limit=15, p=0.5),
-                      A.HorizontalFlip(p=0.5),
-                      A.RandomContrast(p=0.5),
-                      A.RandomBrightnessContrast(p=0.5),
+                    A.RandomRotate90(),
+                    A.RandomCrop(120, 120),
+                    A.AdvancedBlur(blur_limit=(3, 7), p=0.5),
+                    A.ShiftScaleRotate(shift_limit=0.05, scale_limit=0.05, rotate_limit=15, p=0.5),
+                    A.HorizontalFlip(p=0.5),
+                    A.RandomContrast(p=0.5),
+                    A.RandomBrightnessContrast(p=0.5),
                   ])
         ), batch_size=2, shuffle=True, num_workers=0, pin_memory=False
     )
 
     val_loader = torch.utils.data.DataLoader(
-        MyDataset(val_path,
+        MyDataset(np.array(train_path)[val_idx],
                   A.Compose([
                     A.RandomCrop(120, 120),
                   ])
@@ -215,7 +252,7 @@ for fold_idx in range(10):
 
 
     training_start_time = time.time()
-    result_folder = 'train_test_split'
+    result_folder = 'stratifiedKFold'
     os.makedirs(result_folder, exist_ok=True)
     tensorboard_logs_folder = os.path.join(result_folder, 'tensorboard_logs')
     os.makedirs(tensorboard_logs_folder, exist_ok=True)
