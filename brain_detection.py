@@ -252,7 +252,7 @@ for fold_idx, (train_idx, val_idx) in enumerate(skf.split(train_path, train_labe
 
 
     training_start_time = time.time()
-    result_folder = 'stratifiedKFold'
+    result_folder = 'stratifiedKFold_2'
     os.makedirs(result_folder, exist_ok=True)
     tensorboard_logs_folder = os.path.join(result_folder, 'tensorboard_logs')
     os.makedirs(tensorboard_logs_folder, exist_ok=True)
@@ -326,11 +326,23 @@ def predict(test_loader, model, criterion):
 
 
 pred = None
-for _ in range(10):
-    if pred is None:
-        pred = predict(test_loader, model, criterion)
-    else:
-        pred += predict(test_loader, model, criterion)
+
+#使用TTA测试集增强
+
+for model_path in ['stratifiedKFold_2/resnet18_fold0.pth', 'stratifiedKFold_2/resnet18_fold1.pth',
+                   'stratifiedKFold_2/resnet18_fold2.pth', 'stratifiedKFold_2/resnet18_fold3.pth',
+                   'stratifiedKFold_2/resnet18_fold4.pth', 'stratifiedKFold_2/resnet18_fold5.pth',
+                   'stratifiedKFold_2/resnet18_fold6.pth', 'stratifiedKFold_2/resnet18_fold7.pth',
+                   'stratifiedKFold_2/resnet18_fold8.pth', 'stratifiedKFold_2/resnet18_fold9.pth', ]:
+    model = MyNet()
+    model = model.to('cuda')
+    model.load_state_dict(torch.load(model_path))
+
+    for _ in range(10):
+        if pred is None:
+            pred = predict(test_loader, model, criterion)
+        else:
+            pred += predict(test_loader, model, criterion)
 
 submit = pd.DataFrame(
     {
